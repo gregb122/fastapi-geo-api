@@ -1,0 +1,40 @@
+services:
+  api: &main_app
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: fastapi_geo_api:${FASTAPI_GEO_API_VERSION:-latest}
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FASTAPI_GEO_API_HOST: 0.0.0.0
+      FASTAPI_GEO_API_DB_HOST: fastapi_geo_api-db
+      FASTAPI_GEO_API_DB_PORT: 27017
+      FASTAPI_GEO_API_DB_USER: fastapi_geo_api
+      FASTAPI_GEO_API_DB_PASS: fastapi_geo_api
+      FASTAPI_GEO_API_DB_BASE: admin
+  db:
+    image: mongo:7.0
+    hostname: fastapi_geo_api-db
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "fastapi_geo_api"
+      MONGO_INITDB_ROOT_PASSWORD: "fastapi_geo_api"
+    command: "mongod"
+    volumes:
+      - fastapi_geo_api-db-data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 40
+
+
+
+volumes:
+  fastapi_geo_api-db-data:
+    name: fastapi_geo_api-db-data
